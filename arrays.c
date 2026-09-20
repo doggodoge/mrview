@@ -21,28 +21,28 @@ Dynamic_Array dynamic_array_init(Arena *arena, usize elem_size) {
 	void *new_mem = arena_alloc(arena, elem_size * DEFAULT_CAP);
 
 	return (Dynamic_Array){
-		.mem = new_mem;
+		.mem = new_mem,
 		.len = 0,
 		.cap = DEFAULT_CAP,
 		.elem_size = elem_size,		
-	}
+	};
 }
 
 Dynamic_Array dynamic_array_init_with_capacity(Arena *arena, usize elem_size, usize capacity) {
 	void *new_mem = arena_alloc(arena, elem_size * capacity);
 
 	return (Dynamic_Array){
-		.mem = new_mem;
+		.mem = new_mem,
 		.len = 0,
 		.cap = capacity,
 		.elem_size = elem_size,		
-	}
+	};
 }
 
 void dynamic_array_add(Dynamic_Array *array, Arena *arena, void *element) {
 	_dynamic_array_grow_if_required(arena, array);
 
-	usize scaled_index = index * array->elem_size;
+	usize scaled_index = array->len * array->elem_size;
 	memcpy((u8 *)array->mem + scaled_index, element, array->elem_size);
 	array->len += 1;
 }

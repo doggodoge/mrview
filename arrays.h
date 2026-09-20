@@ -2,6 +2,7 @@
 
 #include "string_view.h"
 #include "base.h"
+#include "arena.h"
 #include "slices.h"
 
 typedef struct {

@@ -45,10 +45,11 @@ i32 main(i32 argc, char *argv[]) {
     g_autoptr(AdwApplication) app = adw_application_new("net.mooremoore.practice", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
 
-    Arena arena = arena_init();
     Pull_Requests requests = {0};
+    pull_requests_get(&requests, string_view_from_cstr("GNOME/libadwaita"));
 
-    pull_requests_get_for_url(&arena, &requests, string_view_from_cstr("fakeurl"));
+    i32 status = g_application_run(G_APPLICATION(app), argc, argv);
 
-    return g_application_run(G_APPLICATION(app), argc, argv);
+    pull_requests_clear(&requests);
+    return status;
 }
