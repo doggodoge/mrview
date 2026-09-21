@@ -3,8 +3,11 @@
 #include <string.h>
 
 #include "base.h"
+#include "static_arena.h"
 #include "string_view.h"
 #include "prs.h"
+
+#define PR_STORAGE_CAPACITY (16 * 1024 * 1024)
 
 typedef struct {
     char label_buf[1024];
@@ -12,6 +15,7 @@ typedef struct {
 } App_State;
 
 App_State app_state = {0};
+global_variable _Alignas(max_align_t) u8 pr_storage[PR_STORAGE_CAPACITY];
 
 internal void on_counter_button_click(GtkWidget *button, void *user_data) {
     GtkLabel *label = GTK_LABEL(user_data);
@@ -45,11 +49,12 @@ i32 main(i32 argc, char *argv[]) {
     g_autoptr(AdwApplication) app = adw_application_new("net.mooremoore.practice", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
 
+    Static_Arena arena = static_arena_init(pr_storage, sizeof pr_storage);
     Pull_Requests requests = {0};
-    pull_requests_get(&requests, string_view_from_cstr("GNOME/libadwaita"));
+    pull_requests_get(&arena, &requests, string_view_from_cstr("GNOME/libadwaita"));
 
     i32 status = g_application_run(G_APPLICATION(app), argc, argv);
 
-    pull_requests_clear(&requests);
+    static_arena_reset(&arena);
     return status;
 }

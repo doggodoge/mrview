@@ -1,7 +1,7 @@
 CC ?= cc
 CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic $$(pkg-config --cflags libadwaita-1)
 TARGET := adwaita-test
-SOURCE := alignment.c arena.c files.c string_view.c slices.c arrays.c prs.c vendor/yyjson/yyjson.c main.c
+SOURCE := alignment.c arena.c static_arena.c files.c string_view.c slices.c arrays.c prs.c vendor/yyjson/yyjson.c main.c
 LIBS   := $$(pkg-config --libs libadwaita-1) -lcurl
 
 .PHONY: build run release debug install clean

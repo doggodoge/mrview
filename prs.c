@@ -1,46 +1,61 @@
 #include "prs.h"
 
-#include <glib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "vendor/yyjson/yyjson.h"
 #include "string_view.h"
 
-static bool is_repository_valid(String_View repository);
-static bool is_pr_valid(const yyjson_val *title, const yyjson_val *body,
-	const yyjson_val *url, const yyjson_val *number);
+#define REPOSITORY_MAX_LEN 255
+#define COMMAND_CAPACITY 384
 
-bool pull_requests_get(Pull_Requests *requests, String_View repository) {
-	if (requests == NULL || !is_repository_valid(repository)) {
+static void *json_arena_alloc       (void *context, size_t size);
+static void *json_arena_realloc     (void *context, void *memory, size_t old_size, size_t new_size);
+static void  json_arena_free        (void *context, void *memory);
+static bool  is_repository_character(char c);
+static bool  is_repository_valid    (String_View repository);
+static bool  is_pr_valid            (const yyjson_val *title, const yyjson_val *body, const yyjson_val *url, const yyjson_val *number);
+
+bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View repository) {
+	if (requests == NULL) {
+		fprintf(stderr, "Pull request storage is not initialized\n");
+		return false;
+	}
+
+	if (!is_repository_valid(repository)) {
 		fprintf(stderr, "Repository must be in owner/repo form\n");
 		return false;
 	}
 
-	char *repository_cstr = g_strndup(repository.str, repository.len);
-	char *quoted_repository = g_shell_quote(repository_cstr);
-	char *command = g_strdup_printf(
-		"gh pr list --repo %s --limit %d --json number,title,author,body,url",
-		quoted_repository, PULL_REQUEST_MAX_ITEMS);
+	char command[COMMAND_CAPACITY];
+	int command_len = snprintf(command, sizeof command,
+		"gh pr list --repo %.*s --limit %d --json number,title,author,body,url",
+		(int)repository.len, repository.str, PULL_REQUEST_MAX_ITEMS);
+
+	if (command_len < 0 || (usize)command_len >= sizeof command) {
+		fprintf(stderr, "Could not construct gh command\n");
+		return false;
+	}
 
 	FILE *f = popen(command, "r");
-	g_free(command);
-	g_free(quoted_repository);
-	g_free(repository_cstr);
-
 	if (f == NULL) {
 		perror("Could not run gh");
 		return false;
 	}
 
+	yyjson_alc json_allocator = {
+		.malloc = json_arena_alloc,
+		.realloc = json_arena_realloc,
+		.free = json_arena_free,
+		.ctx = arena,
+	};
 	yyjson_read_err error;
-	yyjson_doc *doc = yyjson_read_fp(f, YYJSON_READ_NOFLAG, NULL, &error);
+	yyjson_doc *doc = yyjson_read_fp(f, YYJSON_READ_NOFLAG, &json_allocator, &error);
 	int command_status = pclose(f);
 
 	if (command_status != 0) {
 		fprintf(stderr, "gh pr list failed for %.*s\n",
 			(int)repository.len, repository.str);
-		yyjson_doc_free(doc);
 		return false;
 	}
 
@@ -53,13 +68,10 @@ bool pull_requests_get(Pull_Requests *requests, String_View repository) {
 
 	if (!yyjson_is_arr(root)) {
 		fprintf(stderr, "Expected a JSON array\n");
-		yyjson_doc_free(doc);
 		return false;
 	}
 
-	Pull_Requests loaded = {
-		.document = doc,
-	};
+	Pull_Requests loaded = {0};
 
 	usize index;
 	usize count;
@@ -110,30 +122,52 @@ bool pull_requests_get(Pull_Requests *requests, String_View repository) {
 		loaded.number[out] = yyjson_get_int(number);
 	}
 
-	pull_requests_clear(requests);
 	*requests = loaded;
 	return true;
 }
 
-void pull_requests_clear(Pull_Requests *requests) {
-	if (requests == NULL) {
-		return;
-	}
+static void *json_arena_alloc(void *context, size_t size) {
+	return static_arena_alloc(context, size);
+}
 
-	yyjson_doc_free(requests->document);
-	*requests = (Pull_Requests){0};
+static void *json_arena_realloc(void *context, void *memory, size_t old_size, size_t new_size) {
+	return static_arena_realloc(context, memory, old_size, new_size);
+}
+
+static void json_arena_free(void *context, void *memory) {
+	(void)context;
+	(void)memory;
 }
 
 static bool is_repository_valid(String_View repository) {
 	if (repository.str == NULL || repository.len < 3 ||
-		memchr(repository.str, '\0', repository.len) != NULL) {
+		repository.len > REPOSITORY_MAX_LEN) {
 		return false;
 	}
 
-	const char *slash = memchr(repository.str, '/', repository.len);
-	return slash != NULL && slash != repository.str &&
-		slash != repository.str + repository.len - 1 &&
-		memchr(slash + 1, '/', (usize)(repository.str + repository.len - slash - 1)) == NULL;
+	usize slash_count = 0;
+	for (usize i = 0; i < repository.len; i += 1) {
+		char c = repository.str[i];
+		if (c == '/') {
+			if (i == 0 || i == repository.len - 1) {
+				return false;
+			}
+			slash_count += 1;
+		} else if (!is_repository_character(c)) {
+			return false;
+		}
+	}
+
+	return slash_count == 1;
+}
+
+static bool is_repository_character(char c) {
+	return (c >= 'a' && c <= 'z')
+		|| (c >= 'A' && c <= 'Z')
+		|| (c >= '0' && c <= '9')
+		|| c == '-'
+		|| c == '_'
+		|| c == '.';
 }
 
 static bool is_pr_valid(const yyjson_val *title, const yyjson_val *body,
