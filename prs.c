@@ -14,7 +14,7 @@ static void *json_arena_realloc     (void *context, void *memory, size_t old_siz
 static void  json_arena_free        (void *context, void *memory);
 static bool  is_repository_character(char c);
 static bool  is_repository_valid    (String_View repository);
-static bool  is_pr_valid            (const yyjson_val *title, const yyjson_val *body, const yyjson_val *url, const yyjson_val *number);
+static bool  is_pr_valid            (const yyjson_val *title, const yyjson_val *url, const yyjson_val *number);
 
 bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View repository) {
 	if (requests == NULL) {
@@ -29,7 +29,7 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 
 	char command[COMMAND_CAPACITY];
 	int command_len = snprintf(command, sizeof command,
-		"gh pr list --repo %.*s --limit %d --json number,title,author,body,url",
+		"gh pr list --repo %.*s --limit %d --json number,title,author,url",
 		(int)repository.len, repository.str, PULL_REQUEST_MAX_ITEMS);
 
 	if (command_len < 0 || (usize)command_len >= sizeof command) {
@@ -83,7 +83,7 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 		}
 
 		yyjson_val *title  = yyjson_obj_get(pr, "title");
-		yyjson_val *body   = yyjson_obj_get(pr, "body");
+		// yyjson_val *body   = yyjson_obj_get(pr, "body");
 		yyjson_val *url    = yyjson_obj_get(pr, "url");
 		yyjson_val *number = yyjson_obj_get(pr, "number");
 
@@ -91,7 +91,7 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 		yyjson_val *author = yyjson_obj_get(pr, "author");
 		yyjson_val *login = yyjson_is_obj(author) ? yyjson_obj_get(author, "login") : NULL;
 
-		if (!is_pr_valid(title, body, url, number)) {
+		if (!is_pr_valid(title, url, number)) {
 			continue;
 		}
 
@@ -102,10 +102,10 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 			.len = yyjson_get_len(title),
 		};
 
-		loaded.body[out] = (String_View){
-			.str = (char *)yyjson_get_str(body),
-			.len = yyjson_get_len(body),
-		};
+		// loaded.body[out] = (String_View){
+		// 	.str = (char *)yyjson_get_str(body),
+		// 	.len = yyjson_get_len(body),
+		// };
 
 		loaded.url[out] = (String_View){
 			.str = (char *)yyjson_get_str(url),
@@ -170,10 +170,9 @@ static bool is_repository_character(char c) {
 		|| c == '.';
 }
 
-static bool is_pr_valid(const yyjson_val *title, const yyjson_val *body,
-	const yyjson_val *url, const yyjson_val *number) {
+static bool is_pr_valid(const yyjson_val *title, const yyjson_val *url, const yyjson_val *number) {
 	return yyjson_is_str(title)
-		&& yyjson_is_str(body)
+		// && yyjson_is_str(body)
 		&& yyjson_is_str(url)
 		&& yyjson_is_int(number);
 }

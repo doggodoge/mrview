@@ -22,7 +22,7 @@ GtkWidget *pull_request_card_new(Pull_Request_Card_Data data) {
 	gtk_label_set_wrap(GTK_LABEL(title), true);
 	gtk_label_set_wrap_mode(GTK_LABEL(title), PANGO_WRAP_WORD_CHAR);
 	gtk_label_set_lines(GTK_LABEL(title), 2);
-	gtk_widget_add_css_class(title, "heading");
+	gtk_widget_add_css_class(title, "title-3");
 	gtk_box_append(GTK_BOX(content), title);
 
 	char metadata[256];
@@ -37,13 +37,13 @@ GtkWidget *pull_request_card_new(Pull_Request_Card_Data data) {
 	gtk_widget_add_css_class(details, "dim-label");
 	gtk_box_append(GTK_BOX(content), details);
 
-	GtkWidget *description = gtk_label_new(data.description.len > 0 ? data.description.str : "No description provided.");
-	gtk_label_set_xalign(GTK_LABEL(description), 0.0f);
-	gtk_label_set_wrap(GTK_LABEL(description), true);
-	gtk_label_set_wrap_mode(GTK_LABEL(description), PANGO_WRAP_WORD_CHAR);
-	gtk_label_set_ellipsize(GTK_LABEL(description), PANGO_ELLIPSIZE_END);
-	gtk_label_set_lines(GTK_LABEL(description), 3);
-	gtk_box_append(GTK_BOX(content), description);
+	// GtkWidget *description = gtk_label_new(data.description.len > 0 ? data.description.str : "No description provided.");
+	// gtk_label_set_xalign(GTK_LABEL(description), 0.0f);
+	// gtk_label_set_wrap(GTK_LABEL(description), true);
+	// gtk_label_set_wrap_mode(GTK_LABEL(description), PANGO_WRAP_WORD_CHAR);
+	// gtk_label_set_ellipsize(GTK_LABEL(description), PANGO_ELLIPSIZE_END);
+	// gtk_label_set_lines(GTK_LABEL(description), 3);
+	// gtk_box_append(GTK_BOX(content), description);
 
 	GtkWidget *footer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_widget_set_halign(footer, GTK_ALIGN_END);
