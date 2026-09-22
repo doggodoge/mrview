@@ -11,7 +11,10 @@
 #define CSTR_MAX_SIZE (4 * MB)
 
 String_View string_view_from_cstr(char *str) {
-    size_t const len = strnlen(str, CSTR_MAX_SIZE);
+    size_t len = 0;
+    while (len < CSTR_MAX_SIZE && str[len] != '\0') {
+        len += 1;
+    }
     assert(len < CSTR_MAX_SIZE);
 
     return (String_View){.str = str, .len = len};

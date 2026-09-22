@@ -7,7 +7,6 @@ SOURCE := \
 	alignment.c \
 	arena.c \
 	static_arena.c \
-	files.c \
 	string_view.c \
 	slices.c \
 	arrays.c \

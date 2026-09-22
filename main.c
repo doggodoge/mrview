@@ -1,5 +1,6 @@
 #include <adwaita.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "base.h"
 #include "prs.h"
@@ -21,6 +22,7 @@ global_variable App_State app_state;
 global_variable _Alignas(max_align_t) u8 pr_storage[PR_STORAGE_CAPACITY];
 
 global_variable Config_State config;
+global_variable char config_path[4096];
 
 internal GtkWidget *pull_request_list_new(const Pull_Requests *requests) {
 	GtkWidget *list = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -83,11 +85,19 @@ internal void on_activate(GtkApplication *app, void *user_data) {
 }
 
 i32 main(i32 argc, char *argv[]) {
-	String_View config_path = string_view_from_cstr("/Users/n1679178/.config/mrview/config");
-	config_init(&config, config_path);
+	char const *home = getenv("HOME");
+	int const path_len = snprintf(config_path, sizeof config_path,
+		"%s/.config/mrview/config", home);
+	if (path_len < 0 || (usize)path_len >= sizeof config_path) {
+		fprintf(stderr, "Could not load config: path is too long\n");
+	} else if (!config_init(&config, config_path)) {
+		fprintf(stderr, "Could not load config: %s\n", config_path);
+	}
 
 	for (usize i = 0; i < config.len; i += 1) {
-		printf("%.*s\n", (i32)config.lines[i].len, config.lines[i].str);
+		Config_Repository repository = config.repositories[i];
+		printf("%.*s/%.*s\n", (i32)repository.owner.len, repository.owner.str,
+			(i32)repository.repo.len, repository.repo.str);
 	}
 
 	app_state.pr_arena = static_arena_init(pr_storage, sizeof pr_storage);
@@ -101,7 +111,6 @@ i32 main(i32 argc, char *argv[]) {
 
 	i32 status = g_application_run(G_APPLICATION(app), argc, argv);
 
-	config_free(&config);
 	static_arena_reset(&app_state.pr_arena);
 	return status;
 }
