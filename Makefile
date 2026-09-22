@@ -2,7 +2,19 @@ CC ?= cc
 CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic $$(pkg-config --cflags libadwaita-1)
 
 TARGET := adwaita-test
-SOURCE := alignment.c arena.c static_arena.c files.c string_view.c slices.c arrays.c prs.c pull_request_card.c vendor/yyjson/yyjson.c main.c
+SOURCE := \
+	main.c \
+	alignment.c \
+	arena.c \
+	static_arena.c \
+	files.c \
+	string_view.c \
+	slices.c \
+	arrays.c \
+	prs.c \
+	pull_request_card.c \
+	config.c \
+	vendor/yyjson/yyjson.c
 LIBS   := $$(pkg-config --libs libadwaita-1) -lcurl
 
 # All .ui files in the project root.

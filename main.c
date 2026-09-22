@@ -6,6 +6,7 @@
 #include "pull_request_card.h"
 #include "static_arena.h"
 #include "string_view.h"
+#include "config.h"
 
 #define PR_STORAGE_CAPACITY (16 * 1024 * 1024)
 #define TEST_REPOSITORY "ghostty-org/ghostty"
@@ -18,6 +19,8 @@ typedef struct {
 
 global_variable App_State app_state;
 global_variable _Alignas(max_align_t) u8 pr_storage[PR_STORAGE_CAPACITY];
+
+global_variable Config_State config;
 
 internal GtkWidget *pull_request_list_new(const Pull_Requests *requests) {
 	GtkWidget *list = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -80,6 +83,13 @@ internal void on_activate(GtkApplication *app, void *user_data) {
 }
 
 i32 main(i32 argc, char *argv[]) {
+	String_View config_path = string_view_from_cstr("/Users/n1679178/.config/mrview/config");
+	config_init(&config, config_path);
+
+	for (usize i = 0; i < config.len; i += 1) {
+		printf("%.*s\n", (i32)config.lines[i].len, config.lines[i].str);
+	}
+
 	app_state.pr_arena = static_arena_init(pr_storage, sizeof pr_storage);
 	app_state.pull_requests_loaded = pull_requests_get(
 		&app_state.pr_arena,
@@ -90,6 +100,8 @@ i32 main(i32 argc, char *argv[]) {
 	g_signal_connect(app, "activate", G_CALLBACK(on_activate), &app_state);
 
 	i32 status = g_application_run(G_APPLICATION(app), argc, argv);
+
+	config_free(&config);
 	static_arena_reset(&app_state.pr_arena);
 	return status;
 }
