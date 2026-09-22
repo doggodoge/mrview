@@ -1,5 +1,5 @@
 CC ?= cc
-CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic $$(pkg-config --cflags libadwaita-1)
+CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -pthread $$(pkg-config --cflags libadwaita-1)
 
 TARGET := adwaita-test
 SOURCE := \

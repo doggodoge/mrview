@@ -6,9 +6,11 @@
 
 ---
 
-A simple libadwaita app for viewing a list of PRs on a GitHub repo. Hard coded
-to the ghostty repo for now just to have something with a substantial number of
-PRs to test against.
+A simple libadwaita app for viewing PRs across GitHub repositories. List one
+owner/repo per line in ~/.config/mrview/config, then select a repository in the
+sidebar.
+
+The sidebar uses libadwaita 1.9 or newer.
 
 The intention is to eventually add a sidebar as well. A lot of redundant code
 in this project now, like slices.c, arena.c, files.c that are just not used.
@@ -17,5 +19,4 @@ some point, once I'm sure I'll not be needing them.
 
 I let libadwaita/gtk4 do it's own thing for memory management, but the model is
 completely statically allocated via .bss with explicit limits set, hopefully
-fairly reasonable limits. The static arena is capped at 16MB.
-
+fairly reasonable limits. The PR arenas share a 16MB storage pool.
