@@ -43,7 +43,7 @@ global_variable Config_State config;
 global_variable char config_path[4096];
 global_variable pthread_t workers[WORKER_COUNT];
 global_variable Worker_Context worker_contexts[WORKER_COUNT];
-global_variable pthread_barrier_t workers_done;
+global_variable _Atomic usize workers_done;
 global_variable usize worker_count;
 global_variable usize arena_capacity;
 
@@ -132,8 +132,7 @@ internal void *fetch_repositories(void *user_data) {
 		state->loaded = pull_requests_get(&state->arena, &state->pull_requests, name);
 	}
 
-	pthread_barrier_wait(&workers_done);
-	if (worker->id == 0) {
+	if (atomic_fetch_add_explicit(&workers_done, 1, memory_order_acq_rel) + 1 == worker_count) {
 		atomic_store_explicit(&app_state.ready, true, memory_order_release);
 	}
 	return NULL;
@@ -206,9 +205,6 @@ internal void on_activate(GtkApplication *app, void *user_data) {
 	if (worker_count > 0) {
 		arena_capacity = PR_STORAGE_CAPACITY / config.len;
 		arena_capacity -= arena_capacity % _Alignof(max_align_t);
-		if (pthread_barrier_init(&workers_done, NULL, (unsigned)worker_count) != 0) {
-			abort();
-		}
 		for (usize i = 0; i < worker_count; i += 1) {
 			worker_contexts[i] = (Worker_Context){.id = i, .count = worker_count};
 			if (pthread_create(&workers[i], NULL, fetch_repositories, &worker_contexts[i]) != 0) {
@@ -236,9 +232,6 @@ i32 main(i32 argc, char *argv[]) {
 
 	for (usize i = 0; i < worker_count; i += 1) {
 		pthread_join(workers[i], NULL);
-	}
-	if (worker_count > 0) {
-		pthread_barrier_destroy(&workers_done);
 	}
 	return status;
 }
