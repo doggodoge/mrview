@@ -138,6 +138,11 @@ internal void *fetch_repositories(void *user_data) {
 	return NULL;
 }
 
+internal void on_quit_activated(GSimpleAction *action, GVariant *parameter, void *user_data) {
+	GApplication *app = G_APPLICATION(user_data);
+	g_application_quit(app);
+}
+
 internal void on_activate(GtkApplication *app, void *user_data) {
 	App_State *state = user_data;
 	if (state->window != NULL) {
@@ -226,6 +231,14 @@ i32 main(i32 argc, char *argv[]) {
 
 	g_autoptr(AdwApplication) app = adw_application_new("net.mooremoore.MRView", G_APPLICATION_DEFAULT_FLAGS);
 	g_signal_connect(app, "activate", G_CALLBACK(on_activate), &app_state);
+
+	GSimpleAction *quit = g_simple_action_new("quit", NULL);
+	g_signal_connect(quit, "activate", G_CALLBACK(on_quit_activated), app);
+	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(quit));
+	g_object_unref(quit);
+
+	char const *quit_accels[] = { "<primary>q", NULL };
+	gtk_application_set_accels_for_action(GTK_APPLICATION(app), "app.quit", quit_accels);
 
 	i32 status = g_application_run(G_APPLICATION(app), argc, argv);
 
