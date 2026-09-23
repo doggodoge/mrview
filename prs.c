@@ -2,19 +2,21 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
-#include "vendor/yyjson/yyjson.h"
+#include "base.h"
 #include "string_view.h"
+#include "vendor/yyjson/yyjson.h"
 
 #define REPOSITORY_MAX_LEN 255
 #define COMMAND_CAPACITY 384
 
-static void *json_arena_alloc       (void *context, size_t size);
-static void *json_arena_realloc     (void *context, void *memory, size_t old_size, size_t new_size);
-static void  json_arena_free        (void *context, void *memory);
-static bool  is_repository_character(char c);
-static bool  is_repository_valid    (String_View repository);
-static bool  is_pr_valid            (const yyjson_val *title, const yyjson_val *url, const yyjson_val *number);
+internal void *json_arena_alloc       (void *context, size_t size);
+internal void *json_arena_realloc     (void *context, void *memory, size_t old_size, size_t new_size);
+internal void  json_arena_free        (void *context, void *memory);
+internal bool  is_repository_character(char c);
+internal bool  is_repository_valid    (String_View repository);
+internal bool  is_pr_valid            (yyjson_val const *title, yyjson_val const *url, yyjson_val const *number, yyjson_val const *is_draft);
 
 bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View repository) {
 	if (requests == NULL) {
@@ -28,9 +30,9 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 	}
 
 	char command[COMMAND_CAPACITY];
-	int command_len = snprintf(command, sizeof command,
-		"gh pr list --repo %.*s --limit %d --json number,title,author,url",
-		(int)repository.len, repository.str, PULL_REQUEST_MAX_ITEMS);
+	i32 command_len = snprintf(command, sizeof command,
+		"gh pr list --repo %.*s --limit %d --json number,title,author,url,isDraft",
+		(i32)repository.len, repository.str, PULL_REQUEST_MAX_ITEMS);
 
 	if (command_len < 0 || (usize)command_len >= sizeof command) {
 		fprintf(stderr, "Could not construct gh command\n");
@@ -51,11 +53,11 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 	};
 	yyjson_read_err error;
 	yyjson_doc *doc = yyjson_read_fp(f, YYJSON_READ_NOFLAG, &json_allocator, &error);
-	int command_status = pclose(f);
+	i32 command_status = pclose(f);
 
 	if (command_status != 0) {
 		fprintf(stderr, "gh pr list failed for %.*s\n",
-			(int)repository.len, repository.str);
+			(i32)repository.len, repository.str);
 		return false;
 	}
 
@@ -82,16 +84,14 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 			break;
 		}
 
-		yyjson_val *title  = yyjson_obj_get(pr, "title");
-		// yyjson_val *body   = yyjson_obj_get(pr, "body");
-		yyjson_val *url    = yyjson_obj_get(pr, "url");
-		yyjson_val *number = yyjson_obj_get(pr, "number");
+		yyjson_val *title    = yyjson_obj_get(pr, "title");
+		yyjson_val *url      = yyjson_obj_get(pr, "url");
+		yyjson_val *number   = yyjson_obj_get(pr, "number");
+		yyjson_val *author   = yyjson_obj_get(pr, "author");
+		yyjson_val *is_draft = yyjson_obj_get(pr, "isDraft");
+		yyjson_val *login    = yyjson_is_obj(author) ? yyjson_obj_get(author, "login") : NULL;
 
-		// "author" is itself an object
-		yyjson_val *author = yyjson_obj_get(pr, "author");
-		yyjson_val *login = yyjson_is_obj(author) ? yyjson_obj_get(author, "login") : NULL;
-
-		if (!is_pr_valid(title, url, number)) {
+		if (!is_pr_valid(title, url, number, is_draft)) {
 			continue;
 		}
 
@@ -102,15 +102,12 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 			.len = yyjson_get_len(title),
 		};
 
-		// loaded.body[out] = (String_View){
-		// 	.str = (char *)yyjson_get_str(body),
-		// 	.len = yyjson_get_len(body),
-		// };
-
 		loaded.url[out] = (String_View){
 			.str = (char *)yyjson_get_str(url),
 			.len = yyjson_get_len(url),
 		};
+
+		loaded.is_draft[out] = yyjson_get_bool(is_draft);
 
 		if (yyjson_is_str(login)) {
 			loaded.author[out] = (String_View){
@@ -126,20 +123,35 @@ bool pull_requests_get(Static_Arena *arena, Pull_Requests *requests, String_View
 	return true;
 }
 
-static void *json_arena_alloc(void *context, size_t size) {
+Pull_Request pull_request_at_index(Pull_Requests *prs, usize index) {
+	Pull_Request pr = {0};
+	if (index > prs->len - 1) {
+		return pr;
+	}
+
+	pr.title    = prs->title[index];
+	pr.author   = prs->author[index];
+	pr.url      = prs->url[index];
+	pr.number   = prs->number[index];
+	pr.is_draft = prs->is_draft[index];
+
+	return pr;
+}
+
+internal void *json_arena_alloc(void *context, size_t size) {
 	return static_arena_alloc(context, size);
 }
 
-static void *json_arena_realloc(void *context, void *memory, size_t old_size, size_t new_size) {
+internal void *json_arena_realloc(void *context, void *memory, size_t old_size, size_t new_size) {
 	return static_arena_realloc(context, memory, old_size, new_size);
 }
 
-static void json_arena_free(void *context, void *memory) {
+internal void json_arena_free(void *context, void *memory) {
 	(void)context;
 	(void)memory;
 }
 
-static bool is_repository_valid(String_View repository) {
+internal bool is_repository_valid(String_View repository) {
 	if (repository.str == NULL || repository.len < 3 ||
 		repository.len > REPOSITORY_MAX_LEN) {
 		return false;
@@ -161,7 +173,7 @@ static bool is_repository_valid(String_View repository) {
 	return slash_count == 1;
 }
 
-static bool is_repository_character(char c) {
+internal bool is_repository_character(char c) {
 	return (c >= 'a' && c <= 'z')
 		|| (c >= 'A' && c <= 'Z')
 		|| (c >= '0' && c <= '9')
@@ -170,9 +182,9 @@ static bool is_repository_character(char c) {
 		|| c == '.';
 }
 
-static bool is_pr_valid(const yyjson_val *title, const yyjson_val *url, const yyjson_val *number) {
+internal bool is_pr_valid(yyjson_val const *title, yyjson_val const *url, yyjson_val const *number, yyjson_val const *is_draft) {
 	return yyjson_is_str(title)
-		// && yyjson_is_str(body)
 		&& yyjson_is_str(url)
-		&& yyjson_is_int(number);
+		&& yyjson_is_int(number)
+		&& yyjson_is_bool(is_draft);
 }

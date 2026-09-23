@@ -54,9 +54,9 @@ internal GtkWidget *pull_request_list_new(const Pull_Requests *requests) {
 		Pull_Request_Card_Data data = {
 			.number = requests->number[i],
 			.title = requests->title[i],
-			.description = requests->body[i],
 			.author = requests->author[i],
 			.url = requests->url[i],
+			.is_draft = requests->is_draft[i],
 		};
 
 		gtk_box_append(GTK_BOX(list), pull_request_card_new(data));
@@ -156,8 +156,7 @@ internal void on_activate(GtkApplication *app, void *user_data) {
 	for (usize i = 0; i < config.len; i += 1) {
 		Config_Repository repo = config.repositories[i];
 		char name[512];
-		snprintf(name, sizeof name, "%.*s/%.*s", (int)repo.owner.len, repo.owner.str,
-			(int)repo.repo.len, repo.repo.str);
+		snprintf(name, sizeof name, "%.*s", (int)repo.repo.len, repo.repo.str);
 		adw_sidebar_section_append(section, adw_sidebar_item_new(name));
 	}
 	adw_sidebar_append(ADW_SIDEBAR(sidebar), section);

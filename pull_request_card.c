@@ -1,6 +1,7 @@
 #include "pull_request_card.h"
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <adwaita.h>
 #include "ui_data/pull_request_card_ui.h"
 
@@ -27,6 +28,11 @@ GtkWidget *pull_request_card_new(Pull_Request_Card_Data data) {
 		snprintf(metadata, sizeof metadata, "#%d · %.*s", data.number, (int)data.author.len, data.author.str);
 	} else {
 		snprintf(metadata, sizeof metadata, "#%d · Unknown author", data.number);
+	}
+
+	if (data.is_draft) {
+		gtk_widget_add_css_class(GTK_WIDGET(title),   "dimmed");
+		gtk_widget_add_css_class(GTK_WIDGET(details), "dimmed");
 	}
 
 	gtk_label_set_text(details, metadata);
