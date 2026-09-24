@@ -5,7 +5,7 @@
 #include "base.h"
 #include "string_view.h"
 
-#define MAX_REPOSITORIES (256)
+#define MAX_REPOSITORIES (16)
 #define MAX_CONFIG_BYTES (64 * 1024)
 
 typedef struct {

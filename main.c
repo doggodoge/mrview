@@ -13,7 +13,7 @@
 #include "string_view.h"
 #include "config.h"
 
-#define PR_STORAGE_CAPACITY (16 * 1024 * 1024)
+#define PR_STORAGE_CAPACITY (4 * 1024 * 1024)
 #define WORKER_COUNT 4
 
 typedef struct {
