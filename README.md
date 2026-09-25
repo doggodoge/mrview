@@ -1,10 +1,11 @@
- _______ ______ ___ ___ __                 
+```
+_______ ______ ___ ___ __                 
 |   |   |   __ \   |   |__|.-----.--.--.--.
 |       |      <   |   |  ||  -__|  |  |  |
 |__|_|__|___|__|\_____/|__||_____|________|
+```
 
-
----
+![MRView App Screenshot](images/pr_screenshot.png)
 
 A simple libadwaita app for viewing PRs across GitHub repositories. List one
 owner/repo per line in ~/.config/mrview/config, then select a repository in the
