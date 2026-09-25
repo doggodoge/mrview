@@ -1,5 +1,5 @@
 ```
-_______ ______ ___ ___ __                 
+ _______ ______ ___ ___ __                 
 |   |   |   __ \   |   |__|.-----.--.--.--.
 |       |      <   |   |  ||  -__|  |  |  |
 |__|_|__|___|__|\_____/|__||_____|________|
@@ -7,6 +7,7 @@ _______ ______ ___ ___ __
 
 ![MRView App Screenshot](images/pr_screenshot.png)
 
+```
 A simple libadwaita app for viewing PRs across GitHub repositories. List one
 owner/repo per line in ~/.config/mrview/config, then select a repository in the
 sidebar.
@@ -18,3 +19,4 @@ otempl. I'll delete them at some point, once I'm sure I'll not be needing them.
 I let libadwaita/gtk4 do it's own thing for memory management, but the model is
 completely statically allocated via .bss with explicit limits set, hopefully
 fairly reasonable limits. The PR arenas share a 16MB storage pool.
+```
