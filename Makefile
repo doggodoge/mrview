@@ -5,11 +5,8 @@ TARGET := adwaita-test
 SOURCE := \
 	main.c \
 	alignment.c \
-	arena.c \
 	static_arena.c \
 	string_view.c \
-	slices.c \
-	arrays.c \
 	prs.c \
 	pull_request_card.c \
 	config.c \
